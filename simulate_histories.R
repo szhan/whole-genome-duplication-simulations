@@ -113,10 +113,9 @@ get_number_transitions <- function(phy, his){
     trans_overall <- trans_overall + nbr_trans
   }
   
-  #mean_trans   <- trans_overall / length(his$tip.state)
-  median_trans <- median(trans_per_lineage)
+  names(trans_per_lineage) <- tips
   
-  return(median_trans)
+  return(trans_per_lineage)
 }
 
 

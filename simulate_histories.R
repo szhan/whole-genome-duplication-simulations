@@ -115,7 +115,7 @@ get_number_transitions <- function(phy, his){
   
   names(trans_per_lineage) <- tips
   
-  return(trans_per_lineage)
+  return(mean(trans_per_lineage))
 }
 
 
@@ -138,19 +138,19 @@ simulate_bisse_tree <- function(pars){
                  include.extinct = FALSE)
   
   his   <- history.from.sim.discrete(phy[[1]], 0:1)
-  median_nbr_transitions <- get_number_transitions(phy[[1]], his)
+  mean_nbr_transitions <- get_number_transitions(phy[[1]], his)
   nbr_tips_polyploid <- sum(his$tip.state)
   
   # keep model parameters and simulated tree plus evolutionary history
   random_word <- paste0(sample(letters, 20, TRUE), collapse = "")
   out_save_file <- paste0(random_word, ".RData")
-  save(phy, his, pars, median_nbr_transitions,
+  save(phy, his, pars, mean_nbr_transitions,
        opt, .Random.seed, # global variables
        file = out_save_file)
   
   # TODO: there should be a better way to return a vector
   # that can be fed into mclapply
-  return(paste0(median_nbr_transitions, ",", nbr_tips_polyploid))
+  return(paste0(mean_nbr_transitions, ",", nbr_tips_polyploid))
 }
 
 
@@ -174,7 +174,7 @@ output <- tibble(replicate = 1:opt$nreps,
                  ext1      = rep(opt$ext1,  opt$nreps),
                  q01       = rep(opt$q01,   opt$nreps),
                  q10       = rep(opt$q10,   opt$nreps),
-                 median_nbr_transitions = unlist(results))
+                 mean_nbr_transitions = unlist(results))
 
 
 write.csv(x         = output,

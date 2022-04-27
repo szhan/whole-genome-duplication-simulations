@@ -15,17 +15,17 @@ for(i in 1:5){
       sims <- bind_rows(sims, tmp)
     }
     sims <- sims %>%
-      mutate(median_nbr_transitions = trunc(median_nbr_transitions))
+      mutate(mean_nbr_transitions = trunc(mean_nbr_transitions))
     
-    max_wgds <- max(sims$median_nbr_transitions)
+    max_wgds <- max(sims$mean_nbr_transitions)
     rates_q10 <- sort(unique(sims$q10))
     wgds_by_q10 <- expand.grid(y = max_wgds:1,
                                x = rates_q10)
     wgds_by_q10$z <- rep(0, nrow(wgds_by_q10))
     for(h in 1:nrow(sims)){
-      wgds_by_q10[wgds_by_q10$y == sims[h,]$median_nbr_transitions &
+      wgds_by_q10[wgds_by_q10$y == sims[h,]$mean_nbr_transitions &
                     wgds_by_q10$x == sims[h,]$q10, ]$z <- 
-        wgds_by_q10[wgds_by_q10$y == sims[h,]$median_nbr_transitions &
+        wgds_by_q10[wgds_by_q10$y == sims[h,]$mean_nbr_transitions &
                       wgds_by_q10$x == sims[h,]$q10, ]$z + 1
     }
     

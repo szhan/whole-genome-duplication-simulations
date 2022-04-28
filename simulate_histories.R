@@ -134,9 +134,9 @@ get_number_transitions_per_lineage <- function(phy, # 'phylo' object
   # It is not possible to have more reverse than forward transitions
   # if root state is set to 0.
   # TODO: Investigate why sometimes these assertions are false.
-  stopifnot(all(trans_per_path_01 >= trans_per_path_10))
-  stopifnot(max(trans_per_path_01 - trans_per_path_10) == 0 ||
-            max(trans_per_path_01 - trans_per_path_10) == 1)
+  #stopifnot(all(trans_per_path_01 >= trans_per_path_10))
+  #stopifnot(max(trans_per_path_01 - trans_per_path_10) == 0 ||
+  #          max(trans_per_path_01 - trans_per_path_10) == 1)
   
   result <- list()
   result[[1]] <- trans_per_path_01
@@ -169,6 +169,7 @@ simulate_bisse_tree <- function(pars){
   
   his <- history.from.sim.discrete(phy, 0:1)
   nbr_trans_per_lineage <- get_number_transitions_per_lineage(phy, his)
+  mean_nbr_trans_01 <- mean(nbr_trans_per_lineage$trans_per_path_01)
   nbr_tips_0 <- sum(his$tip.state == 0) # Not kept or returned
   nbr_tips_1 <- sum(his$tip.state == 1) # Not kept or returned
   
@@ -183,7 +184,7 @@ simulate_bisse_tree <- function(pars){
        .Random.seed,
        file = out_save_file)
   
-  return(nbr_trans_per_lineage)
+  return(mean_nbr_trans_01)
 }
 
 

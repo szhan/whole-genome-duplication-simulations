@@ -25,7 +25,6 @@ for(i in s_list){
       csv_file <- paste0(in_dir, s_pref, i, '_', e_pref, j, '_', q_pref, k, '.csv')
       tmp <- as_tibble(read.csv(csv_file))
       tmp <- tmp[tmp$replicate == 1, ] # Take only replicate 1
-      print(tmp)
       sims <- bind_rows(sims, tmp)
     }
     sims <- sims %>%

@@ -73,96 +73,129 @@ print(paste0("nreps     : ", opt$nreps))
 print(paste0("out_file  : ", opt$out_file))
 
 
-# count number of 0->1 transitions in a binary sequence
-count_transitions_dp <- function(x){
-  return(str_count(paste0(x, collapse = ""), "01"))
+# Count number of 0->1 or 1->0 transitions in a string of 0s and 1s.
+# TODO: Processing strings is highly inefficient.
+count_transitions <- function(x, reverse = FALSE){
+  if(reverse){
+    pattern <- "10"
+  }else{
+    pattern <- "01" # TRUE
+  }
+  nbr_transitions <- str_count(paste0(x, collapse = ""), pattern)
+  return(nbr_transitions)
 }
 
 
-get_number_transitions <- function(phy, his){
-  nodes <- names(his$node.state)[-1]
-  tips  <- names(his$tip.state)
+# Count number of 0->1 transitions from the root to each tip,
+# and return the number of transitions across the tips.
+get_number_transitions_per_lineage <- function(phy, # 'phylo' object
+                                               his){
+  nodes <- names(his$node.state)[-1] # Exclude root node (listed as first)
+  tips <- names(his$tip.state)
   
-  trans_per_lineage <- rep(0, length(tips))
-  trans_overall     <- 0
+  # Tally up transitions from root to each tip
+  trans_per_path_01 <- rep(0, length(tips))
+  trans_per_path_10 <- rep(0, length(tips))
   
+  # Number of transitions in the history of an internal node is shared by
+  # its descendants at the tips.
   for(i in 1:length(nodes)){
-    his_df      <- data.frame(his$history[nodes[i]])
+    tmp_df <- data.frame(his$history[nodes[i]])
     
-    if(nrow(his_df) == 1)
+    if(nrow(tmp_df) == 1)
       next
     
-    nbr_trans   <- count_transitions_dp(his_df[, 2])
-    list_desc   <- get.descendants(nodes[i],
-                                   phy,
-                                   tips.only = TRUE)
+    nbr_trans_01 <- count_transitions(tmp_df[, 2], reverse = FALSE)
+    nbr_trans_10 <- count_transitions(tmp_df[, 2], reverse = TRUE)
+    list_desc <- get.descendants(nodes[i], # Tip node ID
+                                 phy,
+                                 tips.only = TRUE)
     
-    trans_per_lineage[list_desc] <- trans_per_lineage[list_desc] + nbr_trans
-    trans_overall <- trans_overall + nbr_trans * length(list_desc)
+    trans_per_path_01[list_desc] <- trans_per_path_01[list_desc] + nbr_trans_01
+    trans_per_path_10[list_desc] <- trans_per_path_10[list_desc] + nbr_trans_10
   }
   
   for(i in 1:length(tips)){
-    his_df      <- data.frame(his$history[tips[i]])
+    tmp_df <- data.frame(his$history[tips[i]])
     
-    if(nrow(his_df) == 1)
+    if(nrow(tmp_df) == 1)
       next
     
-    nbr_trans   <- count_transitions_dp(his_df[, 2])
+    nbr_trans_01 <- count_transitions(tmp_df[, 2], reverse = FALSE)
+    nbr_trans_10 <- count_transitions(tmp_df[, 2], reverse = TRUE)
     
-    trans_per_lineage[i] <- trans_per_lineage[i] + nbr_trans
-    trans_overall <- trans_overall + nbr_trans
+    trans_per_path_01[list_desc] <- trans_per_path_01[list_desc] + nbr_trans_01
+    trans_per_path_10[list_desc] <- trans_per_path_10[list_desc] + nbr_trans_10
   }
   
-  names(trans_per_lineage) <- tips
+  names(trans_per_path_01) <- tips
+  names(trans_per_path_10) <- tips # Not returned
   
-  return(mean(trans_per_lineage))
+  # It is not possible to have more reverse than forward transitions
+  # if root state is set to 0.
+  # TODO: Investigate why sometimes these assertions are false.
+  stopifnot(all(trans_per_path_01 >= trans_per_path_10))
+  stopifnot(max(trans_per_path_01 - trans_per_path_10) == 0 ||
+            max(trans_per_path_01 - trans_per_path_10) == 1)
+  
+  result <- list()
+  result[[1]] <- trans_per_path_01
+  result[[2]] <- trans_per_path_10
+  names(result) <- c("trans_per_path_01",
+                     "trans_per_path_10")
+  
+  return(result)
 }
 
 
+# Helper function
 is_wholenumber <- function(x, tol = .Machine$double.eps^0.5){
   abs(x - round(x)) < tol
 }
 
 
-# wrapper for mclapply
+# Wrapper for mclapply()
 simulate_bisse_tree <- function(pars){
   stopifnot(length(pars) == 7)
   stopifnot(all(is.double(pars[1:6])))
   stopifnot(is_wholenumber(pars[7]))
   
-  phy   <- trees(pars = pars[1:6], # rate parameters
-                 max.taxa = pars[7], # number of extant taxa
-                 n    = 1, # number of simulations
-                 x0   = 0, # initial root state
-                 type = "bisse",
-                 include.extinct = FALSE)
+  phy <- trees(pars = pars[1:6], # Rate parameters
+               max.taxa = pars[7], # Nbr of extant taxa
+               n = 1, # Nbr of simulations
+               x0 = 0, # Initial root state
+               type = "bisse",
+               include.extinct = FALSE)[[1]]
   
-  his   <- history.from.sim.discrete(phy[[1]], 0:1)
-  mean_nbr_transitions <- get_number_transitions(phy[[1]], his)
-  nbr_tips_polyploid <- sum(his$tip.state)
+  his <- history.from.sim.discrete(phy, 0:1)
+  nbr_trans_per_lineage <- get_number_transitions_per_lineage(phy, his)
+  nbr_tips_0 <- sum(his$tip.state == 0) # Not kept or returned
+  nbr_tips_1 <- sum(his$tip.state == 1) # Not kept or returned
   
-  # keep model parameters and simulated tree plus evolutionary history
+  # Keep model parameters and simulated tree plus character history.
   random_word <- paste0(sample(letters, 20, TRUE), collapse = "")
   out_save_file <- paste0(random_word, ".RData")
-  save(phy, his, pars, mean_nbr_transitions,
-       opt, .Random.seed, # global variables
+  save(phy,
+       his,
+       pars,
+       nbr_trans_per_lineage,
+       #opt,
+       .Random.seed,
        file = out_save_file)
   
-  # TODO: there should be a better way to return a vector
-  # that can be fed into mclapply
-  return(paste0(mean_nbr_transitions, ",", nbr_tips_polyploid))
+  return(nbr_trans_per_lineage)
 }
 
 
-results <- mclapply(rep(list(c(opt$spec0, # diploid speciation rate
-                               opt$spec1, # polyploid speciation rate
-                               opt$ext0,  # diploid extinction rate
-                               opt$ext1,  # polyploid extinction rate
-                               opt$q01,   # diploid-to-polyploid transition
-                               opt$q10,   # polyploid-to-diploid transition
-                               opt$ntaxa  # number of extant taxa
+results <- mclapply(rep(list(c(opt$spec0, # Diploid speciation rate
+                               opt$spec1, # Polyploid speciation rate
+                               opt$ext0,  # Diploid extinction rate
+                               opt$ext1,  # Polyploid extinction rate
+                               opt$q01,   # Diploid-to-polyploid transition rate
+                               opt$q10,   # Polyploid-to-diploid transition rate
+                               opt$ntaxa  # Nbr of extant taxa
                                )),
-                        opt$nreps),       # number of simulations
+                        opt$nreps),       # Nbr of simulations
                     simulate_bisse_tree,
                     mc.cores = detectCores())
 
@@ -174,8 +207,7 @@ output <- tibble(replicate = 1:opt$nreps,
                  ext1      = rep(opt$ext1,  opt$nreps),
                  q01       = rep(opt$q01,   opt$nreps),
                  q10       = rep(opt$q10,   opt$nreps),
-                 mean_nbr_transitions = unlist(results))
-
+                 nbr_transitions = unlist(results))
 
 write.csv(x         = output,
           file      = opt$out_file,

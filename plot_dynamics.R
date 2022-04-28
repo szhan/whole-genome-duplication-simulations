@@ -1,23 +1,37 @@
 require(cowplot)
 require(dplyr)
 require(ggplot2)
+require(viridis)
 
+
+in_dir <- "data/sim8/"
+
+s_pref <- 'x'
+s_list <- 1:5
+e_pref <- 'y'
+e_list <- 1:5
+q_pref <- 'z'
+q_list <- 1:5
+
+out_pdf_file <- "rate_dynamics.pdf"
 
 p_x <- list()
 
 pth <- 0
-for(i in 1:5){
-  for(j in 1:5){
+for(i in s_list){
+  for(j in e_list){
     sims <- tibble()
-    for(k in 1:5){
-      csv_file <- paste0("s", i, "_e", j, "_q", k, ".csv")
+    for(k in q_list){
+      csv_file <- paste0(in_dir, s_pref, i, '_', e_pref, j, '_', q_pref, k, '.csv')
       tmp <- as_tibble(read.csv(csv_file))
+      tmp <- tmp[tmp$replicate == 1, ] # Take only replicate 1
+      print(tmp)
       sims <- bind_rows(sims, tmp)
     }
     sims <- sims %>%
       mutate(mean_nbr_transitions = trunc(mean_nbr_transitions))
     
-    max_wgds <- max(sims$mean_nbr_transitions)
+    max_wgds <- ceiling(max(sims$mean_nbr_transitions))
     rates_q10 <- sort(unique(sims$q10))
     wgds_by_q10 <- expand.grid(y = max_wgds:1,
                                x = rates_q10)
@@ -45,19 +59,16 @@ for(i in 1:5){
             legend.position = "none")
     
     pth <- pth + 1
-    print(pth)
     p_x[[pth]] <- p_tmp
-    p_x <- c(p_x, p_tmp)
   }
 }
 
 
-pdf("rate_dynamics.pdf", useDingbats = FALSE)
-plot_grid(p_x[[1]] , p_x[[2]] , p_x[[3]] , p_x[[4]] , p_x[[5]],
-          p_x[[6]] , p_x[[7]] , p_x[[8]] , p_x[[9]] , p_x[[10]],
-          p_x[[11]], p_x[[12]], p_x[[13]], p_x[[14]], p_x[[15]],
-          p_x[[16]], p_x[[17]], p_x[[18]], p_x[[19]], p_x[[20]],
-          p_x[[21]], p_x[[22]], p_x[[23]], p_x[[24]], p_x[[25]],
-          nrow = 5,
-          ncol = 5)
+pdf(out_pdf_file, useDingbats = FALSE)
+grid_size <- floor(sqrt(length(p_x)))^2
+plot_grid(
+  p_x[[1]],
+  nrow = grid_size,
+  ncol = grid_size
+)
 dev.off()

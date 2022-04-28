@@ -107,7 +107,7 @@ get_number_transitions_per_lineage <- function(phy, # 'phylo' object
     
     nbr_trans_01 <- count_transitions(tmp_df[, 2], reverse = FALSE)
     nbr_trans_10 <- count_transitions(tmp_df[, 2], reverse = TRUE)
-    list_desc <- get.descendants(nodes[i], # Tip node ID
+    list_desc <- get.descendants(nodes[i], # Internal node ID
                                  phy,
                                  tips.only = TRUE)
     

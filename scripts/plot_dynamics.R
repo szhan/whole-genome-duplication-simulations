@@ -1,0 +1,89 @@
+require(cowplot)
+require(dplyr)
+require(ggplot2)
+require(readr)
+require(viridis)
+
+
+in_dir <- "data/Sol/"
+title_text <- "Solanaceae-like BiSSE parameters"
+out_pdf_file <- "bisse_sims_solanaceae_like.pdf"
+
+s_pref <- 'r'
+s_list <- 1:1
+e_pref <- 'i'
+e_list <- 1:1
+q_pref <- 'z'
+q_list <- 1:20
+
+sims <- tibble()
+for(i in s_list){
+  for(j in e_list){
+    for(k in q_list){
+      csv_file <- paste0(in_dir,
+                         s_pref, i, '_',
+                         e_pref, j, '_',
+                         q_pref, k, '.csv')
+      print(csv_file)
+      tmp <- as_tibble(read.csv(csv_file))
+      sims <- bind_rows(sims, tmp)
+    }
+  }
+}
+
+min_wgds <- floor(min(sims$nbr_transitions))
+max_wgds <- ceiling(max(sims$nbr_transitions))
+
+set.seed(123456)
+
+d <- sims %>%
+  ggplot(aes(y = nbr_transitions,
+             x = q10)) +
+  geom_hex(color = "white",
+           bins = 10) +
+  scale_fill_viridis_c() +
+  ylim(min_wgds, max_wgds) +
+  ggtitle(title_text) +
+  ylab("Number of 0-to-1 transitions\n(mean across all lineages)") +
+  xlab("Rate of 1-to-0 transition") +
+  labs(fill = "Number of\nsimulations") +
+  theme_minimal() +
+  theme(title = element_text(size = 14),
+        panel.background = element_rect(fill = "grey92",
+                                        colour = NA),
+        panel.border = element_blank(),
+        panel.grid = element_blank(),
+        axis.title.x = element_text(size = 14),
+        axis.title.y = element_text(size = 14),
+        axis.text.y  = element_text(size = 14),
+        axis.text.x  = element_text(size = 14),
+        legend.title = element_text(size = 12),
+        legend.text = element_text(size = 12)
+  )
+
+pdf(out_pdf_file, useDingbats = FALSE, width = 8.5, height = 7)
+d
+dev.off()
+
+
+
+
+wgds_by_q10 <- expand.grid(y = max_wgds:1, x = rates_q10)
+
+wgds_by_q10$z <- rep(0, nrow(wgds_by_q10))
+for(h in 1:nrow(sims)){
+  wgds_by_q10[wgds_by_q10$y == sims[h,]$mean_nbr_transitions &
+                wgds_by_q10$x == sims[h,]$q10, ]$z <- 
+    wgds_by_q10[wgds_by_q10$y == sims[h,]$mean_nbr_transitions &
+                  wgds_by_q10$x == sims[h,]$q10, ]$z + 1
+}
+
+
+pdf(out_pdf_file, useDingbats = FALSE)
+grid_size <- floor(sqrt(length(p_x)))^2
+plot_grid(
+  p_x[[1]],
+  nrow = grid_size,
+  ncol = grid_size
+)
+dev.off()

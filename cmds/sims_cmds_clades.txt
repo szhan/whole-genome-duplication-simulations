@@ -1,0 +1,2 @@
+Rscript --no-save simulate_histories.R --spec0=1 --spec1=0.6 --ext0=0.899 --ext1=0.750 --q01=0.04 --q10=0.04 --ntaxa=4000 --nreps=1000 --out_file=bras_4000_1000.csv
+Rscript --no-save simulate_histories.R --spec0=1 --spec1=0.742 --ext0=0.735 --ext1=0.667 --q01=0.030 --q10=0.030 --ntaxa=3000 --nreps=1000 --out_file=sola_3000_1000.csv

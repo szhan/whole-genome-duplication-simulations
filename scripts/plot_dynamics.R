@@ -44,8 +44,8 @@ d <- sims %>%
   scale_fill_viridis_c() +
   ylim(min_wgds, max_wgds) +
   ggtitle(title_text) +
-  ylab("Number of 0-to-1 transitions\n(mean across all lineages)") +
-  xlab("Rate of 1-to-0 transition") +
+  ylab("Number of diploid-to-polyploid transitions\n(mean across all lineages)") +
+  xlab("Rate of polyploid-to-diploid transition") +
   labs(fill = "Number of\nsimulations") +
   theme_minimal() +
   theme(title = element_text(size = 14),

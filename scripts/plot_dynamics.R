@@ -9,12 +9,12 @@ in_dir <- "data/Sol/"
 title_text <- "Solanaceae-like BiSSE parameters"
 out_pdf_file <- "bisse_sims_solanaceae_like.pdf"
 
-s_pref <- 'r'
+s_pref <- 'a'
 s_list <- 1:1
-e_pref <- 'i'
+e_pref <- 'b'
 e_list <- 1:1
-q_pref <- 'z'
-q_list <- 1:20
+q_pref <- 'c'
+q_list <- 1:5
 
 sims <- tibble()
 for(i in s_list){
@@ -63,27 +63,4 @@ d <- sims %>%
 
 pdf(out_pdf_file, useDingbats = FALSE, width = 8.5, height = 7)
 d
-dev.off()
-
-
-
-
-wgds_by_q10 <- expand.grid(y = max_wgds:1, x = rates_q10)
-
-wgds_by_q10$z <- rep(0, nrow(wgds_by_q10))
-for(h in 1:nrow(sims)){
-  wgds_by_q10[wgds_by_q10$y == sims[h,]$mean_nbr_transitions &
-                wgds_by_q10$x == sims[h,]$q10, ]$z <- 
-    wgds_by_q10[wgds_by_q10$y == sims[h,]$mean_nbr_transitions &
-                  wgds_by_q10$x == sims[h,]$q10, ]$z + 1
-}
-
-
-pdf(out_pdf_file, useDingbats = FALSE)
-grid_size <- floor(sqrt(length(p_x)))^2
-plot_grid(
-  p_x[[1]],
-  nrow = grid_size,
-  ncol = grid_size
-)
 dev.off()
